@@ -1,51 +1,63 @@
-
-using System;
 using ServerCore;
+using System;
+using System.Collections.Generic;
 
-class PacketManager
+public class PacketManager
 {
-    static PacketManager m_Instance = new PacketManager();
-    public static PacketManager Instance{ get{return m_Instance;} }
+	#region Singleton
+	static PacketManager _instance = new PacketManager();
+	public static PacketManager Instance { get { return _instance; } }
+	#endregion
 
-    Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>> m_OnRecv = new();
-    Dictionary<ushort, Action<PacketSession, IPacket>> m_Handler = new();
+	PacketManager()
+	{
+		Register();
+	}
 
-    private PacketManager()
-    {
-        Register();
-    }
+	Dictionary<ushort, Func<PacketSession, ArraySegment<byte>, IPacket>> _makeFunc = new Dictionary<ushort, Func<PacketSession, ArraySegment<byte>, IPacket>>();
+	Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
+		
+	public void Register()
+	{
+		_makeFunc.Add((ushort)PacketID.C_LeaveGame, MakePacket<C_LeaveGame>);
+		_handler.Add((ushort)PacketID.C_LeaveGame, PacketHandler.C_LeaveGameHandler);
+		_makeFunc.Add((ushort)PacketID.C_Move, MakePacket<C_Move>);
+		_handler.Add((ushort)PacketID.C_Move, PacketHandler.C_MoveHandler);
 
-    public void Register()
-    {
+	}
 
-    m_OnRecv.Add((ushort)PacketID.C_Chat, MakePacket<C_Chat>);
-    m_Handler.Add((ushort)PacketID.C_Chat, PacketHandler.C_ChatHandler);
+	public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer, Action<PacketSession, IPacket> onRecvCallback)
+	{
+		ushort count = 0;
 
+		ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+		count += 2;
+		ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+		count += 2;
 
-    }
+		Func<PacketSession, ArraySegment<byte>,IPacket> func = null;
+		if (_makeFunc.TryGetValue(id, out func))
+		{
+			IPacket packet = func.Invoke(session, buffer);
+			//중간과정을 거칠지 아니면 바로 패킷을 만들지 (유니티 오브젝트를 건드릴 시 메인 스레드에서 실행)
+			if (onRecvCallback != null)
+				onRecvCallback.Invoke(session, packet);
+			else 
+				HandlePacket(session, packet);
+		}
+	}
 
-    public void OnRecvPakcet(PacketSession _refSession, ArraySegment<byte> _arrBuffer)
-    {
-        ushort count = 0;
+	T MakePacket<T>(PacketSession session, ArraySegment<byte> buffer) where T : IPacket, new()
+	{
+		T pkt = new T();
+		pkt.Read(buffer);
+		return pkt;
+	}
 
-        ushort size = BitConverter.ToUInt16(_arrBuffer.Array, _arrBuffer.Offset);
-        count += 2;
-        ushort id = BitConverter.ToUInt16(_arrBuffer.Array, _arrBuffer.Offset + count);
-        count += 2;
-
-        Action<PacketSession, ArraySegment<byte>> refAction = null;
-        if (m_OnRecv.TryGetValue(id, out refAction))
-            refAction.Invoke(_refSession, _arrBuffer);
-    }
-
-    private void MakePacket<T>(PacketSession _refSession, ArraySegment<byte> _arrBuffer) where T : IPacket, new()
-    {
-        T pkt = new T();
-        pkt.Read(_arrBuffer);
-
-        Action<PacketSession, IPacket> refAction = null;
-        if (m_Handler.TryGetValue(pkt.Protocol, out refAction))
-            refAction.Invoke(_refSession, pkt);
-    }
-
+	public void HandlePacket(PacketSession session, IPacket  packet)
+	{
+		Action<PacketSession, IPacket> action = null;
+		if(_handler.TryGetValue(packet.Protocol, out action))
+			action.Invoke(session, packet);
+	}
 }

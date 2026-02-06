@@ -7,6 +7,7 @@ using System.Text;
 
 using System.Threading.Tasks;
 
+//나중에 프로젝트에는 내 클라세션을 pplayer에서 가지고 있게 설정
 namespace Server
 {
     
@@ -14,7 +15,10 @@ namespace Server
     {
         public int m_iSessionID {  get; set; }
         public GameRoom Room { get; set; }
-        
+        public float m_PosX { get; set; }
+        public float m_PosY { get; set; }
+        public float m_PosZ { get; set; }
+       
         public override void OnConnected(EndPoint _refEndPoint)
         {
             Porgram.Room.Enter(this);
@@ -32,7 +36,7 @@ namespace Server
 
         public override void OnRecvPacket(ArraySegment<byte> _arrBuffer)
         {
-            PacketManager.Instance.OnRecvPakcet(this, _arrBuffer);
+            PacketManager.Instance.OnRecvPacket(this, _arrBuffer,null);
         }
 
         public override void OnSend(int _iBytes)

@@ -20,11 +20,7 @@ namespace DummyClient
             {
                 foreach(ServerSession session in m_listSession)
                 {
-                    C_Chat chatpacket = new C_Chat();
-                    chatpacket.chat = $"Hellow Sever";
-                    ArraySegment<byte> segment = chatpacket.Write();
-
-                    session.Send(segment);
+                   
                 }
             }
         }

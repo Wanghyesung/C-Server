@@ -69,7 +69,7 @@ namespace PacketGenerator
             }
 
             Tuple<string, string, string> tMembers = ParseMembers(_reader);
-            m_strGenPackets += String.Format(PacketFormat.m_strPacketFormat,
+            m_strGenPackets += String.Format(PacketFormat.strPacketFormat,
                 strPacketName, tMembers.Item1, tMembers.Item2, tMembers.Item3);
             m_strPacketEnum += string.Format(PacketFormat.strPacketEnumFormat, strPacketName, ++m_iPacketID) + Environment.NewLine + "\t";
 
