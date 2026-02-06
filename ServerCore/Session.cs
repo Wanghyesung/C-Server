@@ -46,7 +46,7 @@ namespace ServerCore
         private Socket m_refSocket = null;
         private int m_iDisConnected = 0;
 
-        RecvBuffer m_refRecvBuffer = new RecvBuffer(1024);
+        RecvBuffer m_refRecvBuffer = new RecvBuffer(65535);
         private object m_lock = new object();
         private Queue<ArraySegment<byte>> m_qSendQeueu = new Queue<ArraySegment<byte>>();
         List<ArraySegment<byte>> m_listPending = new List<ArraySegment<byte>>();
@@ -94,6 +94,21 @@ namespace ServerCore
             lock(m_lock)
             {
                 m_qSendQeueu.Enqueue(sendBuffer);
+                if (m_listPending.Count == 0)
+                    RegiserSend();
+            }
+        }
+
+        public void Send(List<ArraySegment<byte>> sendBuffer)
+        {
+            if (sendBuffer.Count == 0)
+                return;
+
+            lock (m_lock)
+            {
+                foreach(ArraySegment<byte> arrBuf in sendBuffer)
+                    m_qSendQeueu.Enqueue(arrBuf);
+
                 if (m_listPending.Count == 0)
                     RegiserSend();
             }

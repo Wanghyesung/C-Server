@@ -21,7 +21,8 @@ namespace Server
        
         public override void OnConnected(EndPoint _refEndPoint)
         {
-            Porgram.Room.Enter(this);
+            Porgram.Room.Push(() => { Porgram.Room.Enter(this); });
+            
         }
 
         public override void OnDisConnected(EndPoint _refEndPoint)
@@ -29,7 +30,9 @@ namespace Server
             SessionManager.Instance.Remove(this);
             if(Room!= null)
             {
-                Room.Leave(this);
+                //다른 스레드에서 처리하기 전에 null로 가기 때문에 참조해서 가지고 있다가 해당 스택의 변수를 통해서 leave
+                GameRoom refRoom = Room;
+                refRoom.Push(() => { refRoom.Leave(this); });
                 Room = null;
             }
         }

@@ -20,11 +20,13 @@ namespace Server
             IPAddress ipAddr = ipHost.AddressList[0];
             IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
 
-            m_Listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+            m_Listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); },10);
 
             while(true)
             {
-
+                //내가 모은 패킷을 처리
+                Room.Push( ()=> Room.Flush());
+                Thread.Sleep(250);
             }
         }
     }

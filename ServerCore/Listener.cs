@@ -13,16 +13,16 @@ namespace ServerCore
         private Socket m_ListenSoket = null;
         private Func<Session> m_refSessionHandler = null; //세션을 어떤 방식으로 만들어줄지
 
-        public void Init(IPEndPoint _refEndPoint, Func<Session> _refSessionHandler)
+        public void Init(IPEndPoint _refEndPoint, Func<Session> _refSessionHandler, int _iRegister, int _iBackLog = 100)
         {
             m_ListenSoket = new Socket(_refEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             m_refSessionHandler += _refSessionHandler;
 
             m_ListenSoket.Bind(_refEndPoint);
-            m_ListenSoket.Listen(10); //최대 대기 수
+            m_ListenSoket.Listen(_iBackLog); //최대 대기 수
 
             //완료되면 콜백 함수
-            for(int i = 0; i<10; ++i)
+            for(int i = 0; i<_iRegister; ++i)
             {
                 SocketAsyncEventArgs refArgs = new SocketAsyncEventArgs();
                 refArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnAcceptCompleted);
