@@ -12,6 +12,13 @@ namespace Server
     {
         static private Listener m_Listener = new Listener();
         public static GameRoom Room = new GameRoom();
+
+        static void FlushRoom()
+        {
+            Room.Push(() => Room.Flush());
+            //현재 예약된 일감을 실행하고 다음 일정을 예약
+            JobTimer.m_Instance.Push(FlushRoom, 250);
+        }
         static void Main(string[] args)
         {
            
@@ -22,11 +29,11 @@ namespace Server
 
             m_Listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); },10);
 
+            JobTimer.m_Instance.Push(FlushRoom);
+
             while(true)
             {
-                //내가 모은 패킷을 처리
-                Room.Push( ()=> Room.Flush());
-                Thread.Sleep(250);
+                JobTimer.m_Instance.Flush();
             }
         }
     }

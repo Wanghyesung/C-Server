@@ -109,6 +109,7 @@ namespace ServerCore
                 foreach(ArraySegment<byte> arrBuf in sendBuffer)
                     m_qSendQeueu.Enqueue(arrBuf);
 
+                //내가 처음으로 들어온 send라면
                 if (m_listPending.Count == 0)
                     RegiserSend();
             }

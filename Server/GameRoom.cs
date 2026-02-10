@@ -75,12 +75,11 @@ namespace Server
         public void Leave(ClientSession _refSession)
         {
           
-                m_listSession.Remove(_refSession);
-
-
-                S_BroadcastLeveGame leave = new S_BroadcastLeveGame();
-                leave.playerID = _refSession.m_iSessionID;
-                Broadcast(leave.Write());
+            m_listSession.Remove(_refSession);
+            
+            S_BroadcastLeveGame leave = new S_BroadcastLeveGame();
+            leave.playerID = _refSession.m_iSessionID;
+            Broadcast(leave.Write());
             
         }
 
