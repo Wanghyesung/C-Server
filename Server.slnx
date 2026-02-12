@@ -2,7 +2,6 @@
   <Folder Name="/Tools/">
     <Project Path="PacketGenerator/PacketGenerator.csproj" Id="52e43b31-8e8b-4fc6-86dc-62b941167cc0" />
   </Folder>
-  <Project Path="DummyClient/DummyClient.csproj" />
   <Project Path="Server/Server.csproj" />
   <Project Path="ServerCore/ServerCore.csproj" />
 </Solution>

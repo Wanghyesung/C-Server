@@ -1,4 +1,6 @@
-﻿using ServerCore;
+﻿using Google.Protobuf;
+using Google.Protobuf.Protocol;
+using ServerCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,32 +16,45 @@ namespace Server
     public class ClientSession : PacketSession
     {
         public int m_iSessionID {  get; set; }
-        public GameRoom Room { get; set; }
-        public float m_PosX { get; set; }
-        public float m_PosY { get; set; }
-        public float m_PosZ { get; set; }
+        //public GameRoom Room { get; set; }
        
+        public void Send(IMessage _Ipacket)
+        {
+            string strMsgName = _Ipacket.Descriptor.Name.Replace("_", string.Empty);
+            MsgId eID = (MsgId)Enum.Parse(typeof(MsgId), strMsgName);
+
+
+            short sSize = (short)_Ipacket.CalculateSize();
+            byte[] arrSendBuffer = new byte[sSize + 4]; //패킷 사이즈, 패킷 아이디
+            Array.Copy(BitConverter.GetBytes(sSize + 4), 0, arrSendBuffer, 0, sizeof(ushort));
+
+            ushort protocolId = (ushort)eID;
+            Array.Copy(BitConverter.GetBytes(protocolId), 0, arrSendBuffer, 2, sizeof(ushort));
+            Array.Copy(_Ipacket.ToByteArray(), 0, arrSendBuffer, 4, sSize);
+
+            Send(new ArraySegment<byte>(arrSendBuffer));
+        }
         public override void OnConnected(EndPoint _refEndPoint)
         {
-            Porgram.Room.Push(() => { Porgram.Room.Enter(this); });
-            
+            //Porgram.Room.Push(() => { Porgram.Room.Enter(this); });
+            Console.WriteLine($"Connected");   
         }
 
         public override void OnDisConnected(EndPoint _refEndPoint)
         {
             SessionManager.Instance.Remove(this);
-            if(Room!= null)
-            {
-                //다른 스레드에서 처리하기 전에 null로 가기 때문에 참조해서 가지고 있다가 해당 스택의 변수를 통해서 leave
-                GameRoom refRoom = Room;
-                refRoom.Push(() => { refRoom.Leave(this); });
-                Room = null;
-            }
+            //if(Room!= null)
+            //{
+            //    //다른 스레드에서 처리하기 전에 null로 가기 때문에 참조해서 가지고 있다가 해당 스택의 변수를 통해서 leave
+            //    GameRoom refRoom = Room;
+            //    refRoom.Push(() => { refRoom.Leave(this); });
+            //    Room = null;
+            //}
         }
 
         public override void OnRecvPacket(ArraySegment<byte> _arrBuffer)
         {
-            PacketManager.Instance.OnRecvPacket(this, _arrBuffer,null);
+            PacketManager.Instance.OnRecvPacket(this, _arrBuffer);
         }
 
         public override void OnSend(int _iBytes)
