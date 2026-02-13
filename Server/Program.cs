@@ -23,7 +23,9 @@ namespace Server
 
         static void Main(string[] args)
         {
-            
+            for(int i = 0; i<3; ++i)
+                SceneManager.m_Instance.Add();
+
 
             string host = Dns.GetHostName();
             IPHostEntry ipHost = Dns.GetHostEntry(host);

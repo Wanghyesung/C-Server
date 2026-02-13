@@ -15,6 +15,7 @@ namespace Server
     
     public class ClientSession : PacketSession
     {
+        public Player m_refPlayer { get; set; }
         public int m_iSessionID {  get; set; }
         //public GameRoom Room { get; set; }
        
@@ -24,9 +25,9 @@ namespace Server
             MsgId eID = (MsgId)Enum.Parse(typeof(MsgId), strMsgName);
 
 
-            short sSize = (short)_Ipacket.CalculateSize();
+            ushort sSize = (ushort)_Ipacket.CalculateSize();
             byte[] arrSendBuffer = new byte[sSize + 4]; //패킷 사이즈, 패킷 아이디
-            Array.Copy(BitConverter.GetBytes(sSize + 4), 0, arrSendBuffer, 0, sizeof(ushort));
+            Array.Copy(BitConverter.GetBytes((sSize + 4)), 0, arrSendBuffer, 0, sizeof(ushort));
 
             ushort protocolId = (ushort)eID;
             Array.Copy(BitConverter.GetBytes(protocolId), 0, arrSendBuffer, 2, sizeof(ushort));
@@ -37,7 +38,16 @@ namespace Server
         public override void OnConnected(EndPoint _refEndPoint)
         {
             //Porgram.Room.Push(() => { Porgram.Room.Enter(this); });
-            Console.WriteLine($"Connected");   
+            Console.WriteLine($"Connected");
+
+            m_refPlayer = new Player();
+            m_refPlayer.SetSession(this);
+            PlayerInfo refPlayerInfo = new PlayerInfo();
+            refPlayerInfo.PosInfo.PosX = 0;
+            refPlayerInfo.PosInfo.PosY = 0;
+            refPlayerInfo.Name = $"Player";
+
+            SceneManager.m_Instance.Find(0).EnterGame(m_refPlayer);
         }
 
         public override void OnDisConnected(EndPoint _refEndPoint)
