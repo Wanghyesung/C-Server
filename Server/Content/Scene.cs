@@ -1,8 +1,11 @@
-﻿using Google.Protobuf.Protocol;
+﻿using Google.Protobuf;
+using Google.Protobuf.Protocol;
+using Server.Content;
 using ServerCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,73 +16,107 @@ namespace Server
         object m_lock = new object();
         private int m_iSceneID;
         public int SceneID { get { return m_iSceneID; } }
+
+        private int m_iObjectID = 0;
         public void SetSceneID(int _iSceneID) { m_iSceneID = _iSceneID; }
 
-        private Dictionary<int, Player> m_hashPlayer = new Dictionary<int, Player>();
-        private Queue<int> m_queuePlayerId = new Queue<int>();
-        private JobQueue m_refJob = new JobQueue();
+        //나중에 object로 변경 or 몬스터, 사물 따로 hash로 가지기
+        private List<Dictionary<int, GameObject>> m_listObject = new List<Dictionary<int, GameObject>>();
 
-        public void Init()
+        //Map Data 읽어오기
+        private Map m_refMap = new Map();
+        public void Init(string _strMapDataPath)
         {
-            for (int i = 0; i < 50; ++i)
-                m_queuePlayerId.Enqueue(i);
+            string[] lines = File.ReadAllLines(_strMapDataPath);
+            m_refMap.Init(_strMapDataPath);
+
+            for(int i = 0; i<(int)ObjectType.Monsterattack + 1; ++i)
+                m_listObject.Add(new Dictionary<int, GameObject>());
         }
-        public void EnterGame(Player _refPlayer)
+
+        public void Update()
         {
-            JobTimer.m_Instance.Push(() =>
+
+        }
+
+
+        public void BroadCast(IMessage _IMessage)
+        {
+            Dictionary<int, GameObject> m_hashPlayer = m_listObject[(int)ObjectType.Player];
+            foreach(Player refPlayer in m_hashPlayer.Values)
+                refPlayer.Session.Send(_IMessage);
+        }
+
+        public void BroadCast(IMessage _IMessage, GameObject _refException)
+        {
+            Dictionary<int, GameObject> m_hashPlayer = m_listObject[(int)ObjectType.Player];
+            foreach (Player refPlayer in m_hashPlayer.Values)
             {
-               //lock (m_lock)
-               //{
-                if (m_queuePlayerId.Count == 0)
+                if(_refException != refPlayer)
+                    refPlayer.Session.Send(_IMessage);
+            }
+        }
+
+        public void EnterGame(Player refPlayer)
+        {
+            JobTimer.m_Instance.Push((Action)(() =>
+            {
+                //lock (m_lock)
+                //{
+
+                if (refPlayer == null)
                     return;
-                
-                //플레이어 ID 발급
-                int iID = m_queuePlayerId.Dequeue();
-                if (_refPlayer == null)
-                    return;
-                
-                m_hashPlayer.Add(iID, _refPlayer);
-                _refPlayer.SetPlayerID(iID);
+
+                Dictionary<int, GameObject> refHashObject = m_listObject[(int)ObjectType.Player];
+                refHashObject.Add(m_iObjectID, refPlayer);
+                refPlayer.SetObjectID(m_iObjectID++);
 
                 //새로 들어온 플레이어에게 내 정보와 해당 씬에 있는 플레이어 목록을 전달
                 {
                     S_EnterGame pkt = new S_EnterGame();
-                    pkt.Player = _refPlayer.PlayerInfo;
-                    _refPlayer.Session.Send(pkt);
+                    pkt.PlayerId = refPlayer.PlayerID;
+                    refPlayer.Session.Send(pkt);
+
 
                     S_Spawn otherPkt = new S_Spawn();
-                    foreach (KeyValuePair<int, Player> _refOther in m_hashPlayer)
+                    foreach (GameObject _refOther in refHashObject.Values)
                     {
-                        if (_refOther.Value == _refPlayer)
+                        if (_refOther == refPlayer)
                             continue;
-                        otherPkt.Players.Add(_refOther.Value.PlayerInfo);
+
+                        otherPkt.Players.Add(_refOther.ObjectInfo);
                     }
-                    _refPlayer.Session.Send(otherPkt);
+                    refPlayer.Session.Send(otherPkt);
                 }
 
                 //기존에 방에 있는 플레이어들에게도 새로 들어온 플레이어 전달
                 {
                     S_Spawn pkt = new S_Spawn();
-                    pkt.Players.Add(_refPlayer.PlayerInfo);
-                    foreach (KeyValuePair<int, Player> _refOther in m_hashPlayer)
+                    pkt.Players.Add(refPlayer.ObjectInfo);
+                    foreach (GameObject refOther in refHashObject.Values)
                     {
-                        if (_refOther.Value == _refPlayer)
+                        if (refOther == refPlayer)
                             continue;
-                        _refOther.Value.Session.Send(pkt);
+
+                        Player refOtherPlayer = refOther as Player;
+                        refOtherPlayer.Session.Send(pkt);
                     }
                 }
                //}
 
-            });
+            }));
         }
 
         public void LeaveGame(int _iPlayerID)
         {
-            Player refPlayer = null;
-            if(m_hashPlayer.TryGetValue(_iPlayerID, out refPlayer) == false)
+            GameObject refObject = null;
+            Dictionary<int, GameObject> refHashObject = m_listObject[(int)ObjectType.Player];
+
+            if (refHashObject.TryGetValue(_iPlayerID, out refObject) == false)
                 return;
 
-            m_hashPlayer.Remove(_iPlayerID);
+            Player refPlayer = refObject as Player;
+            refHashObject.Remove(_iPlayerID);
             refPlayer.SetRoom(null);
 
             //본인에게 전송
@@ -90,9 +127,40 @@ namespace Server
             {
                 S_Despawn pkt = new S_Despawn();
                 pkt.PlayerIds.Add(_iPlayerID);
-                foreach (KeyValuePair<int, Player> _refOther in m_hashPlayer)
-                    _refOther.Value.Session.Send(pkt);
+                foreach (KeyValuePair<int, GameObject> refOther in refHashObject)
+                {
+                    Player refOtherPlayer = refOther.Value as Player;
+
+                    refOtherPlayer.Session.Send(pkt);
+
+                }
             }
+
+        }
+
+
+        public bool MapCheck(float _X, float _Z)
+        {
+            return m_refMap.CanGo(_X, _Z);
+        }
+        public Vector2 ClamToLastVaild(float _x, float _z, float _gx, float _gy, MoveDir _refMove)
+        {
+            return m_refMap.ClamToLastVaild(_x, _z, _gx, _gy, _refMove);
+        }
+
+
+        public GameObject FindObject(ObjectType _eObjectType, int _iObjectID)
+        {
+            Dictionary<int, GameObject> m_hashobject = m_listObject[(int)_eObjectType];
+            if (m_hashobject.TryGetValue(_iObjectID, out GameObject refObject) == true)
+                return refObject;
+
+            return null;
+        }
+
+
+        public void AddGameObject()
+        {
 
         }
     }

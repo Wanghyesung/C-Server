@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf.Protocol;
+using Server.Content;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,11 +8,14 @@ using System.Threading.Tasks;
 
 namespace Server
 {
-    public class Player
+    public class Player : GameObject
     {
-        private PlayerInfo m_refPlayerInfo = null;
-        public PlayerInfo PlayerInfo { get { return m_refPlayerInfo; } }
-        public void SetPlauerInfo(PlayerInfo _refPlayerInfo) { m_refPlayerInfo = _refPlayerInfo; }
+        public void SetPlayerInfo(ObjectInfo _refPlayerInfo) 
+        { 
+            m_refObjectInfo = _refPlayerInfo; 
+            m_refPosition = m_refObjectInfo.PosInfo;
+            m_refPosition.MoveDir = new MoveDir();
+        }
 
         private int m_iPlayerID;
         private Scene m_refScene = null;
@@ -24,6 +28,10 @@ namespace Server
         public void SetSession(ClientSession _refSession) { m_refSession = _refSession; }
 
 
+        override public void UpdateAI()
+        {
+
+        }
 
     }
 }

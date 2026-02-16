@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Google.Protobuf.Protocol;
+using Server.Content;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,9 +16,10 @@ namespace Server
         Dictionary<int, Scene> m_hashScene = new Dictionary<int, Scene>();
 
         private int m_iSceneID = 0;
-        public Scene Add()
+        public Scene Add(string _strMapDataPath)
         {
             Scene refScene = new Scene();
+            refScene.Init(_strMapDataPath);
 
             lock (m_lock)
             {
@@ -35,15 +38,42 @@ namespace Server
             }
         }
 
-        public Scene Find(int _iSceneID)
+        public Scene Find(SceneType _eSceneID)
         {
             lock(m_lock)
             {
-                if(m_hashScene.TryGetValue(_iSceneID, out var _refScene) == true)
-                    return _refScene;
+                if(m_hashScene.TryGetValue((int)_eSceneID, out var refScene) == true)
+                    return refScene;
 
                 return null;
             }
         }
+        
+        public GameObject FindObject(SceneType _eSceneID, int _iObjectID)
+        {
+            lock (m_lock)
+            {
+                if (m_hashScene.TryGetValue((int)_eSceneID, out var refScene) == true)
+                {
+                    int iPlayerID = refScene.SceneID;
+                }
+
+                return null;
+            }
+        }
+        
+
+        //public Scene Find(int _iSceneID, )
+        //{
+        //    lock (m_lock)
+        //    {
+        //        if (m_hashScene.TryGetValue(_iSceneID, out var _refScene) == true)
+        //            return _refScene;
+        //
+        //        return null;
+        //    }
+        //}
+
+
     }
 }

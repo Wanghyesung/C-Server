@@ -40,26 +40,20 @@ namespace Server
             //Porgram.Room.Push(() => { Porgram.Room.Enter(this); });
             Console.WriteLine($"Connected");
 
-            m_refPlayer = new Player();
-            m_refPlayer.SetSession(this);
-            PlayerInfo refPlayerInfo = new PlayerInfo();
-            refPlayerInfo.PosInfo.PosX = 0;
-            refPlayerInfo.PosInfo.PosY = 0;
-            refPlayerInfo.Name = $"Player";
 
+            m_refPlayer = PlayerManager.m_Instance.AddPlayer();
+            if (m_refPlayer == null)
+                return;
+            
+
+            m_refPlayer.SetSession(this);
             SceneManager.m_Instance.Find(0).EnterGame(m_refPlayer);
+            
         }
 
         public override void OnDisConnected(EndPoint _refEndPoint)
         {
-            SessionManager.Instance.Remove(this);
-            //if(Room!= null)
-            //{
-            //    //다른 스레드에서 처리하기 전에 null로 가기 때문에 참조해서 가지고 있다가 해당 스택의 변수를 통해서 leave
-            //    GameRoom refRoom = Room;
-            //    refRoom.Push(() => { refRoom.Leave(this); });
-            //    Room = null;
-            //}
+            Console.WriteLine($"DisConnected");
         }
 
         public override void OnRecvPacket(ArraySegment<byte> _arrBuffer)

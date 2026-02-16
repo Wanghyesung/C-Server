@@ -8,7 +8,21 @@ using Google.Protobuf.Protocol;
 namespace Server
 {
     //game content
-   
+
+    public static class PathUtil
+    {
+        public static string GetExeDir()
+        {
+            return AppDomain.CurrentDomain.BaseDirectory;
+        }
+
+        public static string GetMapPath(string strFileName)
+        {
+            // exe폴더/GameData/MapData/townmap.txt
+            return Path.GetFullPath(Path.Combine(GetExeDir(), "GameData", "MapData", strFileName));
+        }
+    }
+
     class Porgram
     {
         static private Listener m_Listener = new Listener();
@@ -23,10 +37,10 @@ namespace Server
 
         static void Main(string[] args)
         {
-            for(int i = 0; i<3; ++i)
-                SceneManager.m_Instance.Add();
-
-
+            string strMapPath = PathUtil.GetMapPath("townmap.txt");
+            SceneManager.m_Instance.Add(strMapPath);
+            
+            
             string host = Dns.GetHostName();
             IPHostEntry ipHost = Dns.GetHostEntry(host);
             IPAddress ipAddr = ipHost.AddressList[0];
@@ -34,6 +48,7 @@ namespace Server
 
             m_Listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); },5);
 
+            PlayerManager.m_Instance.Init();
             JobTimer.m_Instance.Push(FlushRoom);
 
             while(true)
