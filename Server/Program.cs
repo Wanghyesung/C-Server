@@ -53,6 +53,10 @@ namespace Server
 
             while(true)
             {
+                //main스레드 몬스터이동, 물리 충돌
+
+
+
                 JobTimer.m_Instance.Flush();
             }
         }

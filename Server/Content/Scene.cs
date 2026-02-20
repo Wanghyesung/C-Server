@@ -17,11 +17,12 @@ namespace Server
         private int m_iSceneID;
         public int SceneID { get { return m_iSceneID; } }
 
-        private int m_iObjectID = 0;
+        
         public void SetSceneID(int _iSceneID) { m_iSceneID = _iSceneID; }
 
         //나중에 object로 변경 or 몬스터, 사물 따로 hash로 가지기
         private List<Dictionary<int, GameObject>> m_listObject = new List<Dictionary<int, GameObject>>();
+        private List<int> m_listObjectID = new List<int>();
 
         //Map Data 읽어오기
         private Map m_refMap = new Map();
@@ -31,14 +32,29 @@ namespace Server
             m_refMap.Init(_strMapDataPath);
 
             for(int i = 0; i<(int)ObjectType.Monsterattack + 1; ++i)
+            {
                 m_listObject.Add(new Dictionary<int, GameObject>());
+                m_listObjectID.Add(0);
+            }
         }
 
         public void Update()
         {
-
+            foreach (Dictionary<int, GameObject> hashObj in m_listObject)
+            {
+                foreach (GameObject refObj in hashObj.Values)
+                    refObj.Update();
+            }
         }
 
+        public void LateUpdate()
+        {
+            foreach (Dictionary<int, GameObject> hashObj in m_listObject)
+            {
+                foreach (GameObject refObj in hashObj.Values)
+                    refObj.LateUpdate();
+            }
+        }
 
         public void BroadCast(IMessage _IMessage)
         {
@@ -68,8 +84,11 @@ namespace Server
                     return;
 
                 Dictionary<int, GameObject> refHashObject = m_listObject[(int)ObjectType.Player];
-                refHashObject.Add(m_iObjectID, refPlayer);
-                refPlayer.SetObjectID(m_iObjectID++);
+                //현재 씬에 있는 오브젝트 ID
+                int ObjID = m_listObjectID[(int)ObjectType.Player];
+                refHashObject.Add(ObjID, refPlayer);
+                refPlayer.SetObjectID(ObjID);
+                ++m_listObjectID[(int)ObjectType.Player];
 
                 //새로 들어온 플레이어에게 내 정보와 해당 씬에 있는 플레이어 목록을 전달
                 {
@@ -84,7 +103,7 @@ namespace Server
                         if (_refOther == refPlayer)
                             continue;
 
-                        otherPkt.Players.Add(_refOther.ObjectInfo);
+                        otherPkt.Objects.Add(_refOther.ObjectInfo);
                     }
                     refPlayer.Session.Send(otherPkt);
                 }
@@ -92,7 +111,7 @@ namespace Server
                 //기존에 방에 있는 플레이어들에게도 새로 들어온 플레이어 전달
                 {
                     S_Spawn pkt = new S_Spawn();
-                    pkt.Players.Add(refPlayer.ObjectInfo);
+                    pkt.Objects.Add(refPlayer.ObjectInfo);
                     foreach (GameObject refOther in refHashObject.Values)
                     {
                         if (refOther == refPlayer)
@@ -159,9 +178,28 @@ namespace Server
         }
 
 
-        public void AddGameObject()
+        public void AddGameObject(ObjectType _eObjectType, GameObject _refObj)
         {
+            //m_listObject[(int)_eObjectType].Add()
+            Dictionary<int, GameObject> refHashObject = m_listObject[(int)_eObjectType];
+            int ObjID = m_listObjectID[(int)_eObjectType];
+            refHashObject.Add(ObjID, _refObj);
+            _refObj.SetObjectID(ObjID);
+            ++m_listObjectID[(int)_eObjectType];
+        }
 
+        //15/1 틱만
+        public void SendPosition()
+        {
+            foreach(Dictionary<int, GameObject> hashObj in m_listObject)
+            {
+                foreach(GameObject refObj in hashObj.Values)
+                {
+                    Transform refTr = refObj.GetComponent<Transform>(ComponentType.Transform);
+                    if (refTr != null)
+                        refTr.SendPosition();
+                }
+            }
         }
     }
 }

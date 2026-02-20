@@ -37,9 +37,6 @@ namespace Server
                 
                 
                 ObjectInfo refPlayerInfo = new ObjectInfo();
-                refPlayerInfo.PosInfo = new PositionInfo();
-                refPlayerInfo.PosInfo.PosX = 0;
-                refPlayerInfo.PosInfo.PosY = 0;
                 refPlayerInfo.Name = $"Player";
 
                 refPlayer.SetPlayerID(iID);

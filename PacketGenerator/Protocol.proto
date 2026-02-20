@@ -31,6 +31,7 @@ enum ObjectType
 	OBSTACLE = 4,
 	PLAYERATTACK= 5,
 	MONSTERATTACK= 6,
+	END = 7,
 }
 
 enum SceneType
@@ -40,11 +41,14 @@ enum SceneType
 	DESERT = 2,
 }
 
-
 message MoveDir {
 	float dirX = 1;
 	float dirY = 2;
 	float dirZ = 3;
+}
+
+message SkillType{
+	
 }
 
 message S_EnterGame {
@@ -64,6 +68,10 @@ message S_Despawn {
 
 message C_Move {
   PositionInfo posInfo = 1;
+}
+
+message C_Skill{
+
 }
 
 message S_Other_Move{
